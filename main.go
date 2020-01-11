@@ -3,9 +3,11 @@ package main
 import ( 
     "fmt"
     "os"
-    "time"
     "github.com/veandco/go-sdl2/sdl"
     "github.com/veandco/go-sdl2/ttf"
+    "github.com/veandco/go-sdl2/img"
+    "time"
+
 )
 
 func main() {
@@ -37,7 +39,7 @@ func run() error {
     if err := drawTitle(r); err != nil {
         return  fmt.Errorf("Could not draw title: %v", err)
     }
-    time.Sleep(time.Second*5)
+    start := time.Now()
     running := true
     for running {
         for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -47,16 +49,36 @@ func run() error {
                 running = false
                 break
             }
+            if time.Since(start).Seconds() > 5 {
+                if err := drawBackground(r); err != nil {
+                    return fmt.Errorf("Could not draw background: %v", err)
+                }
+            }
         }
     }
 
+
+
     return nil
 }
+func drawBackground(r * sdl.Renderer) error {
+    r.Clear()
 
+    t, err := img.LoadTexture(r, "res/images/background.png")
+    if err != nil {
+        return fmt.Errorf("Could not fetch background image: %v", err)
+    }
+    if err := r.Copy(t, nil, nil); err != nil {
+        return fmt.Errorf("Could not copy background: %v", err)
+    }
+
+    r.Present()
+    return nil
+}
 func drawTitle(r * sdl.Renderer) error {
 
     r.Clear()
-    f, err := ttf.OpenFont("fonts/test.ttf", 20)
+    f, err := ttf.OpenFont("res/fonts/test.ttf", 20)
     if err != nil {
         return fmt.Errorf("Could not load font: %v", err)
     }
