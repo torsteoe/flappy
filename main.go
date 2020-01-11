@@ -6,7 +6,7 @@ import (
     "github.com/veandco/go-sdl2/sdl"
     "github.com/veandco/go-sdl2/ttf"
     "time"
-    "context"
+    "runtime"
 )
 
 func main() {
@@ -14,6 +14,7 @@ func main() {
         fmt.Fprintf(os.Stderr, "%v", err)
         os.Exit(2)
     }
+    time.Sleep(time.Second)
 }
 
 func run() error {
@@ -34,48 +35,32 @@ func run() error {
         return fmt.Errorf("Could not create window. %v", err)
     }
     defer w.Destroy()
-    _ = r
-    if err := drawTitle(r); err != nil {
-        return  fmt.Errorf("Could not draw title: %v", err)
+
+    s, err := newScene(r)
+    if err !=  nil{
+        return fmt.Errorf("Could not draw background: %v", err)
     }
-    start := time.Now()
-    running := true
-    for running {
-        for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-            switch event.(type) {
-            case *sdl.QuitEvent:
-                println("Quit")
-                running = false
-                break
-            }
-            if time.Since(start).Seconds() > 5 {
-                s, err := newScene(r)
-                if err !=  nil{
-                    return fmt.Errorf("Could not draw background: %v", err)
-                }
-                defer s.destroy()
-                ctx, cancel := context.WithCancel(context.Background())
-                time.AfterFunc(20*time.Second, cancel)
-                select {
-                case err:= <-s.run(ctx, r):
-                        return err
-                    case <-time.After(20*time.Second):
-                        return nil
-                    err = s.paint(r)
-                    if err != nil {
-                        return fmt.Errorf("Could not paint: %v", err)
-                    }
-                }
-            }
+    defer s.destroy()
+    //time.AfterFunc(20*time.Second, cancel)
+
+    events := make(chan sdl.Event)
+    errc := s.run(events, r)
+
+    runtime.LockOSThread()
+
+    for {
+        select {
+        case events <- sdl.WaitEvent():
+        case err := <-errc:
+            return err
         }
     }
-
 
 
     return nil
 }
 
-func drawTitle(r * sdl.Renderer) error {
+func drawTitle(r * sdl.Renderer, text string) error {
 
     r.Clear()
     f, err := ttf.OpenFont("res/fonts/test.ttf", 20)
@@ -85,7 +70,7 @@ func drawTitle(r * sdl.Renderer) error {
     defer f.Close()
 
     c := sdl.Color{ R: 255, G: 100,  B: 0, A: 255 }
-    s, err :=f.RenderUTF8Blended("Flappy Gopher",c)
+    s, err :=f.RenderUTF8Blended(text,c)
 
     if err != nil {
         return fmt.Errorf("Could not render text: %v", err)
