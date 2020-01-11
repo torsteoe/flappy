@@ -28,6 +28,9 @@ func newScene(r *sdl.Renderer) (*scene, error) {
 func (s *scene) update() {
     s.bird.update()
 }
+func (s *scene) restart() {
+    s.bird.restart()
+}
 func (s *scene) run(events <-chan sdl.Event, r *sdl.Renderer) <-chan error {
     errc := make(chan error)
     go func() {
@@ -45,6 +48,7 @@ func (s *scene) run(events <-chan sdl.Event, r *sdl.Renderer) <-chan error {
                         fmt.Printf("Could not draw title: %v", err)
                     }
                     time.Sleep(time.Second)
+                    s.restart()
                 }
                 if err := s.paint(r); err != nil {
                     errc <- err

@@ -43,6 +43,7 @@ func (b *bird) update() {
     }
     b.speed += gravity
 }
+
 func (b *bird) paint(r *sdl.Renderer) error {
     b.mu.RLock()
     defer b.mu.RUnlock()
@@ -52,6 +53,14 @@ func (b *bird) paint(r *sdl.Renderer) error {
         return fmt.Errorf("Could not copy bird: %v", err)
     }
     return nil
+}
+
+func (b *bird) restart() {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    b.y = 300
+    b.speed = 0 
+    b.dead = false
 }
 
 func (b *bird) destroy() {
