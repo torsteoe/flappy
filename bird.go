@@ -11,12 +11,15 @@ type bird struct {
     mu sync.RWMutex
     time int
     textures []*sdl.Texture
-    y, speed float64
+    x int32 
+    y float64
+    w, h int32
+    speed float64
     dead bool
 }
 const (
     gravity = 0.05
-    jumpSpeed = 1
+    jumpSpeed = 3 
 )
 func newBird(r *sdl.Renderer) (*bird, error) {
 
@@ -29,7 +32,7 @@ func newBird(r *sdl.Renderer) (*bird, error) {
         }
         textures = append(textures, bird)
     }
-    return &bird{textures: textures, y:300, speed:0}, nil
+    return &bird{textures: textures, y:300, speed:0, x:10, w: 50, h: 43}, nil
 }
 func (b *bird) update() {
     b.mu.Lock()
@@ -48,7 +51,7 @@ func (b *bird) paint(r *sdl.Renderer) error {
     b.mu.RLock()
     defer b.mu.RUnlock()
     i := b.time/10 % 4
-    rect := &sdl.Rect{X: 10, Y: 600-int32(b.y), W:50, H:43}
+    rect := &sdl.Rect{X: b.x, Y: 600-int32(b.y), W:b.w, H:b.w}
     if err := r.Copy(b.textures[i], nil, rect); err != nil {
         return fmt.Errorf("Could not copy bird: %v", err)
     }
@@ -79,4 +82,25 @@ func (b *bird) isDead() bool {
     b.mu.RLock()
     b.mu.RUnlock()
     return b.dead
+}
+func (b *bird) touch(p *pipe) {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    p.mu.RLock()
+    defer p.mu.RUnlock()
+
+    if p.x > b.x +b.w { //pipe too far right
+        return
+    }
+    if p.x +p.w < b.x { //pipe too far left
+        return
+    }
+    if !p.inverted && p.h < int32(b.y) + (b.h)/2 { //Pipe is too low
+        return
+    }
+    if p.inverted && 600 - int32(b.y)+b.h/2>p.h{ //Pipe is too high
+        return
+    }
+    fmt.Println("dead", 600-int32(b.y)+b.h/2, b.h, p.h)
+    b.dead = true
 }
