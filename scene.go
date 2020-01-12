@@ -92,6 +92,10 @@ func (s *scene) paint(r *sdl.Renderer) error {
     if err := s.pipes.paint(r); err != nil {
         return err
     }
+    if err := s.bird.score.drawScore(r); err != nil {
+        return err
+    }
+
     r.Present()
     return nil
 }
