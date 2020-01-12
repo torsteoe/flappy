@@ -18,11 +18,15 @@ type bird struct {
     dead bool
     score score
     receivingScore bool
+    
 }
 const (
     gravity = 0.10
     jumpSpeed = 3 
 )
+
+func (b *bird) idle() {
+}
 func newBird(r *sdl.Renderer) (*bird, error) {
 
     var textures []*sdl.Texture

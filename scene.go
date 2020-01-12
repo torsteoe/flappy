@@ -13,6 +13,7 @@ type scene struct {
     bg *sdl.Texture
     bird *bird
     pipes *pipes
+    state State
 }
 
 func newScene(r *sdl.Renderer) (*scene, error) {
@@ -28,8 +29,10 @@ func newScene(r *sdl.Renderer) (*scene, error) {
     if err != nil {
         return nil, fmt.Errorf("Could not fetch new pipe: %v", err)
     }
-
-    return &scene{bg: bg, bird: b, pipes: p}, nil
+    state := State{
+        name:"idle",
+    }
+    return &scene{bg: bg, bird: b, pipes: p, state:state}, nil
 }
 func (s *scene) update() {
     s.bird.update()
@@ -39,46 +42,59 @@ func (s *scene) update() {
 func (s *scene) restart() {
     s.bird.restart()
     s.pipes.restart()
+    s.state.name = "idle"
 }
 func (s *scene) run(events <-chan sdl.Event, r *sdl.Renderer) <-chan error {
     errc := make(chan error)
     go func() {
         defer close(errc)
         tick := time.Tick(time.Millisecond * 10)
-        running := true
-        for running{
-            select {
-            case e:= <-events:
-                running = s.handleEvent(e )
-            case <-tick:
-                s.update()
-                if s.bird.isDead() {
-                    if err:=drawTitle(r, "Score: "+strconv.Itoa(s.bird.score.pipes)); err != nil {
-                        fmt.Printf("Could not draw title: %v", err)
-                    }
-                    time.Sleep(time.Second*5)
-                    s.restart()
-                }
-                if err := s.paint(r); err != nil {
-                    errc <- err
-                }
+        for s.state.name != "quit"{
+                select {
+                case e:= <-events:
+                    s.handleEvent(e)
+                case <-tick:
+                    switch (s.state.name) {
+                    case "idle":
+                        s.pipes.idle()
+                        s.bird.idle()
+                        if  err := s.paint(r); err != nil {
+                            errc <- err
+                        }
+
+                   case "running":
+                        s.update()
+                        if s.bird.isDead() {
+                            if err:=drawTitle(r, "Score: "+strconv.Itoa(s.bird.score.pipes)); err != nil {
+                                fmt.Printf("Could not draw title: %v", err)
+                            }
+                            s.state.name = "Game over"
+                            time.AfterFunc(3*time.Second, s.restart)
+                        } else if  err := s.paint(r); err != nil {
+                            errc <- err
+                        }
+                   case "Game over":
+                   }
+
             }
         }
     }()
     return errc
 }
 
-func (s *scene) handleEvent(event sdl.Event) bool {
+func (s *scene) handleEvent(event sdl.Event) {
     switch e :=event.(type) {
     case *sdl.QuitEvent:
-        return false
+        s.state.name="quit"
     case *sdl.MouseButtonEvent:
+       if s.state.name =="idle" {
+           s.state.name = "running"
+       }
         s.bird.jump()
     case *sdl.WindowEvent, *sdl.MouseMotionEvent:
     default:
         log.Printf("Unknown event %T", e)
     }
-    return true
 }
 func (s *scene) paint(r *sdl.Renderer) error {
     r.Clear()

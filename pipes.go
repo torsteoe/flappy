@@ -16,7 +16,9 @@ type pipes struct {
     interval int64
 }
 
-
+func (p *pipes) idle() {
+    p.restart()
+}
 func newPipes(r *sdl.Renderer) (*pipes, error) {
     texture, err := img.LoadTexture(r, "res/images/pipe.png")
     if err != nil {
@@ -76,7 +78,7 @@ func (ps *pipes) update() {
         p.mu.Unlock()
         if p.x+p.w >0 {
             rem = append(rem, p)
-        } 
+        }
     }
     ps.pipes = rem
 }

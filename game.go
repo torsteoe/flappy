@@ -12,15 +12,22 @@ type score struct {
     seconds int
 }
 
+type settings struct {
+    difficulty string
+}
+
 func (score *score) drawScore(r * sdl.Renderer) error {
 
+    whiteRect := &sdl.Rect{X: 575, Y: 400, W: 100, H: 100}
+	r.SetDrawColor(255, 255, 255, 255)
+	r.FillRect(whiteRect)
     f, err := ttf.OpenFont("res/fonts/test.ttf", 20)
     if err != nil {
         return fmt.Errorf("Could not load font: %v", err)
     }
     defer f.Close()
 
-    c := sdl.Color{ R: 255, G: 100,  B: 0, A: 255 }
+    c := sdl.Color{ R: 0, G: 0,  B: 0, A: 255 }
     s, err :=f.RenderUTF8Blended("Score: " + strconv.Itoa(score.pipes),c)
 
     if err != nil {
