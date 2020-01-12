@@ -35,7 +35,7 @@ func newPipes(r *sdl.Renderer) (*pipes, error) {
             for i:= 0; i<int(ps.interval); i++ {
                 time.Sleep(time.Microsecond)
             }
-            if ps.interval > 60000 {
+            if ps.interval > 45000 {
                 ps.interval -= 10000
                 ps.speed += 0.01
             } else {
