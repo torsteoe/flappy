@@ -16,9 +16,11 @@ type bird struct {
     w, h int32
     speed float64
     dead bool
+    score score
+    receivingScore bool
 }
 const (
-    gravity = 0.05
+    gravity = 0.10
     jumpSpeed = 3 
 )
 func newBird(r *sdl.Renderer) (*bird, error) {
@@ -32,7 +34,11 @@ func newBird(r *sdl.Renderer) (*bird, error) {
         }
         textures = append(textures, bird)
     }
-    return &bird{textures: textures, y:300, speed:0, x:10, w: 50, h: 43}, nil
+    score := score{
+        pipes:0,
+        seconds:0,
+    }
+    return &bird{textures: textures, y:300, speed:0, x:10, w: 50, h: 43, receivingScore:false, score: score }, nil
 }
 func (b *bird) update() {
     b.mu.Lock()
@@ -64,6 +70,8 @@ func (b *bird) restart() {
     b.y = 300
     b.speed = 0 
     b.dead = false
+    b.score.pipes = 0
+    b.receivingScore = false
 }
 
 func (b *bird) destroy() {
@@ -86,21 +94,29 @@ func (b *bird) isDead() bool {
 func (b *bird) touch(p *pipe) {
     b.mu.Lock()
     defer b.mu.Unlock()
-    p.mu.RLock()
-    defer p.mu.RUnlock()
 
     if p.x > b.x +b.w { //pipe too far right
         return
     }
     if p.x +p.w < b.x { //pipe too far left
+        b.receivingScore = false
         return
     }
     if !p.inverted && p.h < int32(b.y) + (b.h)/2 { //Pipe is too low
+        if !b.receivingScore {
+            b.score.pipes += 1
+            b.receivingScore = true
+        }
         return
     }
     if p.inverted && 600 - int32(b.y)+b.h/2>p.h{ //Pipe is too high
+        if !b.receivingScore {
+            b.score.pipes += 1
+            b.receivingScore = true
+        }
         return
     }
     fmt.Println("dead", 600-int32(b.y)+b.h/2, b.h, p.h)
+    fmt.Println("Score", b.score.pipes)
     b.dead = true
 }

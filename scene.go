@@ -6,12 +6,13 @@ import (
     "fmt"
     "github.com/veandco/go-sdl2/img"
     "log"
+    "strconv"
 )
 type scene struct {
     time int
     bg *sdl.Texture
     bird *bird
-    pipe *pipe
+    pipes *pipes
 }
 
 func newScene(r *sdl.Renderer) (*scene, error) {
@@ -23,21 +24,21 @@ func newScene(r *sdl.Renderer) (*scene, error) {
     if err != nil {
         return nil, fmt.Errorf("Could not fetch new bird: %v", err)
     }
-    p, err := newPipe(r)
+    p, err := newPipes(r)
     if err != nil {
         return nil, fmt.Errorf("Could not fetch new pipe: %v", err)
     }
 
-    return &scene{bg: bg, bird: b, pipe: p}, nil
+    return &scene{bg: bg, bird: b, pipes: p}, nil
 }
 func (s *scene) update() {
     s.bird.update()
-    s.pipe.update()
-    s.bird.touch(s.pipe)
+    s.pipes.update()
+    s.pipes.touch(s.bird)
 }
 func (s *scene) restart() {
     s.bird.restart()
-    s.pipe.restart()
+    s.pipes.restart()
 }
 func (s *scene) run(events <-chan sdl.Event, r *sdl.Renderer) <-chan error {
     errc := make(chan error)
@@ -52,10 +53,10 @@ func (s *scene) run(events <-chan sdl.Event, r *sdl.Renderer) <-chan error {
             case <-tick:
                 s.update()
                 if s.bird.isDead() {
-                    if err:=drawTitle(r, "Game over"); err != nil {
+                    if err:=drawTitle(r, "Score: "+strconv.Itoa(s.bird.score.pipes)); err != nil {
                         fmt.Printf("Could not draw title: %v", err)
                     }
-                    time.Sleep(time.Second)
+                    time.Sleep(time.Second*5)
                     s.restart()
                 }
                 if err := s.paint(r); err != nil {
@@ -88,7 +89,7 @@ func (s *scene) paint(r *sdl.Renderer) error {
     if err := s.bird.paint(r); err != nil {
         return err
     }
-    if err := s.pipe.paint(r); err != nil {
+    if err := s.pipes.paint(r); err != nil {
         return err
     }
     r.Present()
@@ -98,5 +99,5 @@ func (s *scene) paint(r *sdl.Renderer) error {
 func (s *scene) destroy() {
     s.bg.Destroy()
     s.bird.destroy()
-    s.pipe.destroy()
+    s.pipes.destroy()
 }
