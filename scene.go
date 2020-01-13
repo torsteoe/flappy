@@ -1,12 +1,10 @@
 package main
 
 import (
-    "time"
     "github.com/veandco/go-sdl2/sdl"
     "fmt"
     "github.com/veandco/go-sdl2/img"
-    "log"
-    "strconv"
+    "github.com/veandco/go-sdl2/ttf"
 )
 type scene struct {
     time int
@@ -44,58 +42,50 @@ func (s *scene) restart() {
     s.pipes.restart()
     s.state.name = "idle"
 }
-func (s *scene) run(events <-chan sdl.Event, r *sdl.Renderer) <-chan error {
-    errc := make(chan error)
-    go func() {
-        defer close(errc)
-        tick := time.Tick(time.Millisecond * 10)
-        for s.state.name != "quit"{
-                select {
-                case e:= <-events:
-                    s.handleEvent(e)
-                case <-tick:
-                    switch (s.state.name) {
-                    case "idle":
-                        s.pipes.idle()
-                        s.bird.idle()
-                        if  err := s.paint(r); err != nil {
-                            errc <- err
-                        }
-
-                   case "running":
-                        s.update()
-                        if s.bird.isDead() {
-                            if err:=drawTitle(r, "Score: "+strconv.Itoa(s.bird.score.pipes)); err != nil {
-                                fmt.Printf("Could not draw title: %v", err)
-                            }
-                            s.state.name = "Game over"
-                            time.AfterFunc(3*time.Second, s.restart)
-                        } else if  err := s.paint(r); err != nil {
-                            errc <- err
-                        }
-                   case "Game over":
-                   }
-
-            }
-        }
-    }()
-    return errc
-}
-
-func (s *scene) handleEvent(event sdl.Event) {
-    switch e :=event.(type) {
-    case *sdl.QuitEvent:
-        s.state.name="quit"
-    case *sdl.MouseButtonEvent:
-       if s.state.name =="idle" {
-           s.state.name = "running"
-       }
-        s.bird.jump()
-    case *sdl.WindowEvent, *sdl.MouseMotionEvent:
-    default:
-        log.Printf("Unknown event %T", e)
+func addStartScreen(r *sdl.Renderer) error {
+    r.Clear()
+    ss, err := img.LoadTexture(r, "res/images/startScreen.png")
+    if err != nil {
+        return fmt.Errorf("Could not load start screen image: %v", err)
     }
+
+    if err := r.Copy(ss, nil, nil); err != nil {
+        return fmt.Errorf("Could not copy start screen: %v", err)
+    }
+
+    whiteRect := &sdl.Rect{X: 200, Y: 50, W: 400, H: 200}
+	r.SetDrawColor(255, 255, 255, 255)
+	r.FillRect(whiteRect)
+    f, err := ttf.OpenFont("res/fonts/test.ttf", 20)
+    if err != nil {
+        return fmt.Errorf("Could not load font: %v", err)
+    }
+    defer f.Close()
+
+    c := sdl.Color{ R: 0, G: 0,  B: 0, A: 255 }
+    s, err :=f.RenderUTF8Blended("Press any key to play",c)
+
+    if err != nil {
+        return fmt.Errorf("Could not render text: %v", err)
+    }
+    defer s.Free()
+
+    t, err := r.CreateTextureFromSurface(s)
+    if err != nil {
+        return fmt.Errorf("could not render title: %v", err)
+    }
+    defer t.Destroy()
+
+    rect := &sdl.Rect{X: 200, Y: 50, W: 400, H: 200}
+    err = r.Copy(t, nil, rect)
+    if err !=nil {
+        fmt.Errorf("Could not copy texture: %v", err)
+    }
+    r.Present()
+    return nil
+
 }
+
 func (s *scene) paint(r *sdl.Renderer) error {
     r.Clear()
 

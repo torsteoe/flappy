@@ -1,0 +1,7 @@
+hei,8
+tor,7
+hhh,234
+aa,30
+Gopher 0
+Gopher 1
+Gopher 2

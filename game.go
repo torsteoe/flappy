@@ -8,10 +8,14 @@ import (
 )
 
 type score struct {
+    name string
     pipes int
     seconds int
 }
-
+type highscores struct {
+    scores []int
+    names []string
+}
 type settings struct {
     difficulty string
 }
